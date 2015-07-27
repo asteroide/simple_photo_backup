@@ -1,8 +1,19 @@
+"""
+# Copyright 2015 Asteroide
+# This software is distributed under the terms and conditions of the 'Apache-2.0'
+# license which can be found in the file 'LICENSE' in this package distribution
+# or at 'http://www.apache.org/licenses/LICENSE-2.0'.
+"""
+
+# TODO: customized the position of images in PhotoImage
+# TODO: copy the files to the destination directory
+# TODO: clean the code
+# TODO: add an option for "Delete image from source"
+# TODO: add a micro database for image already scanned
+
+
 import sys
-import http.server
-import socketserver
 import os
-import threading
 import time
 import exifread
 import glob
@@ -23,7 +34,7 @@ try:
 except OSError:
     pass
 
-class Application(tk.Frame ):
+class Application(tk.Frame):
 
     def __init__(self, master=None):
         tk.Frame.__init__(self, master)
@@ -37,6 +48,9 @@ class Application(tk.Frame ):
 
     def __end_configuration(self):
         self.root.destroy()
+        return self.__img_db
+
+    def get_images(self):
         return self.__img_db
 
     def set_next_image_to_frame(self, event=None):
@@ -54,8 +68,6 @@ class Application(tk.Frame ):
         img_list = self.__img_db[self.__current_dirname]["thumbs"]
         self.entry_set.delete(0, len(previous_text))
         self.entry_set.insert(0, self.__current_dirname)
-        # self.dirname_value = dirname
-        # self.entry_set["textvariable"] = self.dirname_value
         for image in img_list:
             imgobj = PhotoImage(file=image)
             label = tk.Label(self, image=imgobj, text=image)
@@ -68,13 +80,11 @@ class Application(tk.Frame ):
     def set_img_db(self, img_db):
         self.__img_db = img_db
         self.__dirnames = list(self.__img_db.keys())
-        self.__dirnames.sort()
+        self.__dirnames.sort(reverse=True)
         self.set_next_image_to_frame()
 
     def __create_widgets(self):
         self.entry_set = tk.Entry(self)
-        # self.dirname_value = tk.StringVar()
-        # self.dirname_value.set("Set the name...")
         self.entry_set["textvariable"] = "Set the name..."
         self.entry_set.bind('<Key-Return>', self.set_next_image_to_frame)
         self.entry_set.pack(side="top")
@@ -109,7 +119,6 @@ def get_date_time(fn):
         _time = time.strptime(str(tags['EXIF DateTimeOriginal']), "%Y:%m:%d %H:%M:%S")
         return time.strftime("%Y/%m-%d", _time)
     except KeyError:
-        # print("Error with {}".format(fn))
         pass
 
 def load_dir(directories):
@@ -140,9 +149,8 @@ def set_up_db(options, args):
                 if os.path.isfile(os.path.join(_outdir, os.path.basename(photo))):
                     continue
                 img_db[dirname]["thumbs"].append(create_thumbnail(photo, TMP_DIR))
-    # if options.configurator:
-    #     self.load_filenames(self.img_db)
-    #     # create_multiple_thumbnails(img_db)
+                sys.stdout.write("/-\\|"[cpt%4]+"    "+str(cpt)+"   \r")
+                sys.stdout.flush()
     return img_db
 
 def load_args():
@@ -156,7 +164,7 @@ def load_args():
     parser.add_option("-f", "--force", dest="force", action="store_true",
                       help="Force analysis of all image (even if already processed)", default=False)
     parser.add_option("--delete", dest="delete", action="store_true",
-                      help="Delete image from source", default=False) # TODO
+                      help="Delete image from source", default=False)
     return parser.parse_args()
 
 
@@ -164,30 +172,34 @@ if __name__ == "__main__":
     options, args = load_args()
     img_db = set_up_db(options, args)
 
-    # for dirname in img_db:
-    #     print(img_db[dirname])
+    if options.configurator:
+        root = tk.Tk()
+        app = Application(master=root)
+        app.set_img_db(img_db)
 
-    root = tk.Tk()
-    app = Application(master=root)
-    app.set_img_db(img_db)
-    print(app.mainloop())
+        app.mainloop()
 
-    # for photo, dirname, max, cpt in self.load_dir(directories):
-    #     if photo and dirname:
-    #         _outdir = os.path.join(out_directory, dirname)
-    #         if os.path.isfile(os.path.join(_outdir, os.path.basename(photo))):
-    #             continue
-    #         if not options.dryrun:
-    #             sys.stdout.write("{:.2%} - {} -> {}   \r".format(cpt/max, photo, _outdir))
-    #         else:
-    #             print("\rCopy {} -> {}      ".format(photo, _outdir))
-    #         if not options.dryrun:
-    #             os.makedirs(_outdir, exist_ok=True)
-    #         if not options.dryrun:
-    #             shutil.copy(photo, _outdir)
-    # if not options.dryrun:
-    #     sys.stdout.write("{:.2%}   \n".format(1.))
+        img_db = app.get_images()
 
+    max = 0
+    cpt = 0
+    for dirname in img_db:
+        max += len(img_db[dirname]['list'])
+    for dirname in img_db:
+        _output_dir = os.path.join(options.destination, img_db[dirname]['dir'])
 
+        for img in img_db[dirname]['list']:
+            if os.path.isfile(os.path.join(_output_dir, os.path.basename(img))):
+                continue
+            if not options.dryrun:
+                sys.stdout.write("{:.2%} - {} -> {}   \r".format(cpt/max, img, _output_dir))
+            else:
+                print("\rCopy {} -> {}      ".format(img, _output_dir))
+            if not options.dryrun:
+                os.makedirs(_output_dir, exist_ok=True)
+            if not options.dryrun:
+                shutil.copy(img, _output_dir)
+            cpt += 1
 
-
+    if not options.dryrun:
+        sys.stdout.write("{:.2%}   \n".format(1.))
