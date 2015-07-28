@@ -5,11 +5,11 @@
 # or at 'http://www.apache.org/licenses/LICENSE-2.0'.
 """
 
-# TODO: customized the position of images in PhotoImage
 # TODO: copy the files to the destination directory
 # TODO: clean the code
 # TODO: add an option for "Delete image from source"
 # TODO: add a micro database for image already scanned
+# TODO: add additional tags in images (eg: Children, Phone, ...)
 
 
 import sys
@@ -58,8 +58,7 @@ class Application(tk.Frame):
         if self.__current_tk_image:
             self.__img_db[self.__current_dirname]['dir'] = previous_text
             # Delete tk images
-            for img in self.__current_tk_image:
-                img.destroy()
+            self.canvas.delete(tk.ALL)
         self.__current_tk_image = []
         try:
             self.__current_dirname = self.__dirnames.pop()
@@ -68,14 +67,17 @@ class Application(tk.Frame):
         img_list = self.__img_db[self.__current_dirname]["thumbs"]
         self.entry_set.delete(0, len(previous_text))
         self.entry_set.insert(0, self.__current_dirname)
+        border = 10
+        cpt = 0
         for image in img_list:
             imgobj = PhotoImage(file=image)
-            label = tk.Label(self, image=imgobj, text=image)
-            label.img = imgobj
-            label.pack(side='bottom')
-            self.__current_tk_image.append(label)
+            _x = imgobj.width()/2 + imgobj.width()*(cpt % 2) + border
+            _y = imgobj.height()/2 + imgobj.height()*int(cpt/2) + border
+            cpt += 1
+            print(cpt, _x, _y)
+            self.canvas.create_image(_x, _y, image=imgobj)
+            self.__current_tk_image.append(imgobj)
         self.entry_set.focus_set()
-        self.pack(side='bottom')
 
     def set_img_db(self, img_db):
         self.__img_db = img_db
@@ -84,17 +86,38 @@ class Application(tk.Frame):
         self.set_next_image_to_frame()
 
     def __create_widgets(self):
-        self.entry_set = tk.Entry(self)
+        self.frame_top = tk.Frame(self)
+
+        self.entry_set = tk.Entry(self.frame_top)
         self.entry_set["textvariable"] = "Set the name..."
         self.entry_set.bind('<Key-Return>', self.set_next_image_to_frame)
-        self.entry_set.pack(side="top")
-        self.button_set = tk.Button(self)
+        self.entry_set.pack(side="left")
+
+        self.button_set = tk.Button(self.frame_top)
         self.button_set["text"] = "Next..."
         self.button_set["command"] = self.set_next_image_to_frame
-        self.button_set.pack(side="top")
-        self.QUIT = tk.Button(self, text="QUIT", fg="red",
-                              command=self.root.destroy)
-        self.QUIT.pack(side="bottom")
+        self.button_set.pack(side="left")
+
+        self.frame_top.pack(fill='both', expand='yes')
+
+        self.frame_body = tk.Frame(self, width=80, height=80, bg='#808000')
+
+        self.canvas = tk.Canvas(self.frame_body, width=2*SIZE[0]+20, height=400)
+        self.canvas.config(scrollregion=self.canvas.bbox(tk.ALL))
+
+        self.scrollbar = tk.Scrollbar(self.frame_body, orient=tk.VERTICAL)
+        self.scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
+        self.scrollbar.config(command=self.canvas.yview)
+
+        self.canvas.config(xscrollcommand=self.scrollbar.set)
+
+        self.canvas.pack(fill=tk.BOTH, expand=True)
+        self.frame_body.pack(fill='both', expand='yes')
+
+        # self.button_set.pack(side="top")
+        # self.QUIT = tk.Button(self, text="QUIT", fg="red",
+        #                       command=self.root.destroy)
+        # self.QUIT.pack(side="bottom")
 
 
 def create_thumbnail(infile, directory, size=SIZE):
