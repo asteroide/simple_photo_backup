@@ -1,15 +1,11 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
 """
 # Copyright 2015 Asteroide
 # This software is distributed under the terms and conditions of the 'Apache-2.0'
 # license which can be found in the file 'LICENSE' in this package distribution
 # or at 'http://www.apache.org/licenses/LICENSE-2.0'.
 """
-
-# TODO: copy the files to the destination directory
-# TODO: clean the code
-# TODO: add an option for "Delete image from source"
-# TODO: add a micro database for image already scanned
-# TODO: add additional tags in images (eg: Children, Phone, ...)
 
 
 import sys
@@ -24,7 +20,7 @@ import logging
 from tkinter import PhotoImage
 import tkinter as tk
 
-PORT = 8080
+__all__ = ['create_thumbnail', 'get_date_time', 'load_dir', 'set_up_db', 'load_args']
 logger = logging.getLogger('img_backup')
 SIZE = (256, 256)
 TMP_DIR = "/tmp/ib"
@@ -191,7 +187,7 @@ def load_args():
     return parser.parse_args()
 
 
-if __name__ == "__main__":
+def run():
     options, args = load_args()
     img_db = set_up_db(options, args)
 
@@ -226,3 +222,6 @@ if __name__ == "__main__":
 
     if not options.dryrun:
         sys.stdout.write("{:.2%}   \n".format(1.))
+
+if __name__ == "__main__":
+    run()

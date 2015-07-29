@@ -1,0 +1,9 @@
+Here is what I want to add in future releases:
+
+0.2: add an option for "Delete image from source"
+0.3: add a micro database (sql, mongodb, txt, ... ?) for images already scanned (maybe in the source directory: .spb.db)
+0.4: add a configuration file to put user default parameters (maybe in ~/.spb.conf)
+0.5: add additional tags in images (eg: pictures from Children, from mobile phone, ...)
+0.6: update graphical interface to add options and a better look-and-feel ?
+...
+1.0: first complete version of Simple Photo Backup
