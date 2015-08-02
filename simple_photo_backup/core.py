@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
 # Copyright 2015 Asteroide
@@ -20,10 +20,13 @@ import logging
 from tkinter import PhotoImage
 import tkinter as tk
 
+__version__ = "0.1.0"
+
 __all__ = ['create_thumbnail', 'get_date_time', 'load_dir', 'set_up_db', 'load_args']
 logger = logging.getLogger('img_backup')
 SIZE = (256, 256)
 TMP_DIR = "/tmp/ib"
+DEFAULT_OUT_DIR = "/tmp/ib"
 
 try:
     os.mkdir(TMP_DIR)
@@ -70,7 +73,6 @@ class Application(tk.Frame):
             _x = imgobj.width()/2 + imgobj.width()*(cpt % 2) + border
             _y = imgobj.height()/2 + imgobj.height()*int(cpt/2) + border
             cpt += 1
-            print(cpt, _x, _y)
             self.canvas.create_image(_x, _y, image=imgobj)
             self.__current_tk_image.append(imgobj)
         self.entry_set.focus_set()
@@ -131,6 +133,7 @@ def create_thumbnail(infile, directory, size=SIZE):
         logger.warning("cannot create thumbnail for {}".format(infile))
     return outname
 
+
 def get_date_time(fn):
     f = open(fn, 'rb')
     try:
@@ -139,6 +142,7 @@ def get_date_time(fn):
         return time.strftime("%Y/%m-%d", _time)
     except KeyError:
         pass
+
 
 def load_dir(directories):
     for filename in directories:
@@ -150,6 +154,7 @@ def load_dir(directories):
                 dirname = get_date_time(_filename)
                 cpt += 1
                 yield _filename, dirname, max, cpt
+
 
 def set_up_db(options, args):
     directories = args
@@ -170,12 +175,17 @@ def set_up_db(options, args):
                 img_db[dirname]["thumbs"].append(create_thumbnail(photo, TMP_DIR))
                 sys.stdout.write("/-\\|"[cpt%4]+"    "+str(cpt)+"   \r")
                 sys.stdout.flush()
+
+    for dirname in list(img_db.keys()):
+        if len(img_db[dirname]["thumbs"]) == 0:
+            img_db.pop(dirname)
     return img_db
+
 
 def load_args():
     parser = OptionParser()
     parser.add_option("-o", "--output-destination", dest="destination",
-                      help="copy files to DIR", metavar="DIR", default="/tmp/ib")
+                      help="copy files to DIR", metavar="DIR", default=DEFAULT_OUT_DIR)
     parser.add_option("-d", "--dry-run", dest="dryrun", action="store_true",
                       help="Execute the script but don't copy the files", default=False)
     parser.add_option("-c", "--configure", dest="configurator", action="store_true",
