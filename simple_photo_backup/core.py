@@ -156,9 +156,16 @@ def load_dir(directories):
                 yield _filename, dirname, max, cpt
 
 
+def __get_already_imported_photos(dirname):
+    imported = []
+    for directory, dirnames, filenames in os.walk(dirname):
+        imported.extend(filenames)
+    return imported
+
 def set_up_db(options, args):
     directories = args
     out_directory = options.destination
+    already_imported_filenames = __get_already_imported_photos(out_directory)
     img_db = {}
     for directory in args:
         for photo, dirname, max, cpt in load_dir(directories):
@@ -170,7 +177,7 @@ def set_up_db(options, args):
                     img_db[dirname]["dir"] = dirname
                 img_db[dirname]["list"].append(photo)
                 _outdir = os.path.join(out_directory, dirname)
-                if os.path.isfile(os.path.join(_outdir, os.path.basename(photo))):
+                if os.path.basename(photo) in already_imported_filenames:
                     continue
                 img_db[dirname]["thumbs"].append(create_thumbnail(photo, TMP_DIR))
                 sys.stdout.write("/-\\|"[cpt%4]+"    "+str(cpt)+"   \r")
