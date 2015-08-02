@@ -5,5 +5,9 @@ Here is what I want to add in future releases:
 0.4: add a configuration file to put user default parameters (maybe in ~/.spb.conf)
 0.5: add additional tags in images (eg: pictures from Children, from mobile phone, ...)
 0.6: update graphical interface to add options and a better look-and-feel ?
+0.7: add files for deb and rpm packages creation
+0.8: add tests
+0.9: add plugins to backup photo through the network (ssh, rsync, samba, ftp, ...)
+
 ...
 1.0: first complete version of Simple Photo Backup
