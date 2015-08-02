@@ -1,10 +1,53 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
  
 from setuptools import setup, find_packages
- 
+import distutils.cmd
+import distutils.log
+import os
+import stat
+
 import simple_photo_backup
- 
+
+class UniqueFile(distutils.cmd.Command):
+    """A custom command to create a unique python file."""
+
+    description = 'create a unique python file'
+    main_file = os.path.join("simple_photo_backup", "core.py")
+    user_options = [
+        ("destination=", "d", "destination directory"),
+        ("output-name=", "o", "output name"),
+    ]
+
+    def initialize_options(self):
+        """Set default values for options."""
+        self.destination = "dists"
+        self.output_name = "spb.py"
+
+    def finalize_options(self):
+        """Post-process options."""
+        try:
+            os.mkdir(self.destination)
+        except OSError:
+            pass
+
+    def run(self):
+        """Run command."""
+        try:
+            os.chmod(os.path.join(self.destination, self.output_name), stat.S_IEXEC | stat.S_IREAD | stat.S_IWRITE)
+            os.remove(os.path.join(self.destination, self.output_name))
+        except OSError:
+            pass
+        ofile = open(os.path.join(self.destination, self.output_name), "w")
+
+        for line in open(os.path.join(os.getcwd(), self.main_file)).readlines():
+            if "DEFAULT_OUT_DIR = " in line:
+                line = "DEFAULT_OUT_DIR = '.'\n"
+            ofile.write(line)
+        ofile.close()
+        os.chmod(os.path.join(self.destination, self.output_name), stat.S_IEXEC | stat.S_IREAD)
+
+
 setup(
  
     name='simple_photo_backup',
@@ -45,5 +88,8 @@ setup(
         'console_scripts': [
             'spb = simple_photo_backup.core:run',
         ],
+    },
+    cmdclass={
+        'unique_file': UniqueFile,
     },
 )
