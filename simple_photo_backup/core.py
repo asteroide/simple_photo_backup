@@ -11,19 +11,23 @@
 import sys
 import os
 import time
-import exifread
 import glob
 import shutil
-from PIL import Image
-from optparse import OptionParser
 import logging
-from tkinter import PhotoImage
-import tkinter as tk
+from optparse import OptionParser
 
-__version__ = "0.1.0"
+logger = logging.getLogger('img_backup')
+
+try:
+    from PIL import Image
+    import exifread
+    from tkinter import PhotoImage
+    import tkinter as tk
+except ImportError:
+    logger.fatal("Import Error!")
+    raise ImportError
 
 __all__ = ['create_thumbnail', 'get_date_time', 'load_dir', 'set_up_db', 'load_args']
-logger = logging.getLogger('img_backup')
 SIZE = (256, 256)
 TMP_DIR = "/tmp/ib"
 DEFAULT_OUT_DIR = "/tmp/ib"
@@ -32,6 +36,7 @@ try:
     os.mkdir(TMP_DIR)
 except OSError:
     pass
+
 
 class Application(tk.Frame):
 
@@ -130,7 +135,7 @@ def create_thumbnail(infile, directory, size=SIZE):
         im.save(outname)
         logger.info("Create thumbnail {}".format(outname))
     except IOError:
-        logger.warning("cannot create thumbnail for {}".format(infile))
+        logger.info("cannot create thumbnail for {}".format(infile))
     return outname
 
 
@@ -139,7 +144,7 @@ def get_date_time(fn):
     try:
         tags = exifread.process_file(f, details=False)
         _time = time.strptime(str(tags['EXIF DateTimeOriginal']), "%Y:%m:%d %H:%M:%S")
-        return time.strftime("%Y/%m-%d", _time)
+        return time.strftime("%Y/%m/%d", _time)
     except KeyError:
         pass
 
@@ -162,6 +167,7 @@ def __get_already_imported_photos(dirname):
         imported.extend(filenames)
     return imported
 
+
 def set_up_db(options, args):
     directories = args
     out_directory = options.destination
@@ -169,18 +175,24 @@ def set_up_db(options, args):
     img_db = {}
     for directory in args:
         for photo, dirname, max, cpt in load_dir(directories):
-            if photo and dirname:
-                if dirname not in img_db:
-                    img_db[dirname] = {}
-                    img_db[dirname]["list"] = []
-                    img_db[dirname]["thumbs"] = []
-                    img_db[dirname]["dir"] = dirname
-                img_db[dirname]["list"].append(photo)
-                if os.path.basename(photo) in already_imported_filenames:
-                    continue
-                img_db[dirname]["thumbs"].append(create_thumbnail(photo, TMP_DIR))
-                sys.stdout.write("/-\\|"[cpt%4]+"    "+str(cpt)+"   \r")
-                sys.stdout.flush()
+            if photo:
+                if not dirname:
+                    ctime = os.stat(photo).st_ctime
+                    _time = time.localtime(ctime)
+                    dirname = "{}/{}/{}".format(_time.tm_year, _time.tm_mon, _time.tm_mday)
+                if dirname:
+                    if dirname not in img_db:
+                        img_db[dirname] = {}
+                        img_db[dirname]["list"] = []
+                        img_db[dirname]["thumbs"] = []
+                        img_db[dirname]["dir"] = dirname
+                    logger.info("append {}".format(photo))
+                    img_db[dirname]["list"].append(photo)
+                    if os.path.basename(photo) in already_imported_filenames:
+                        continue
+                    img_db[dirname]["thumbs"].append(create_thumbnail(photo, TMP_DIR))
+                    sys.stdout.write("/-\\|"[cpt % 4]+"    "+str(cpt)+"   \r")
+                    sys.stdout.flush()
 
     for dirname in list(img_db.keys()):
         if len(img_db[dirname]["thumbs"]) == 0:
@@ -194,6 +206,8 @@ def load_args():
                       help="copy files to DIR", metavar="DIR", default=DEFAULT_OUT_DIR)
     parser.add_option("-d", "--dry-run", dest="dryrun", action="store_true",
                       help="Execute the script but don't copy the files", default=False)
+    parser.add_option("-v", "--verbose", dest="verbose", action="store_true",
+                      help="Also print debug information", default=False)
     parser.add_option("-c", "--configure", dest="configurator", action="store_true",
                       help="Create thumbnail and configure name of directories", default=False)
     parser.add_option("-f", "--force", dest="force", action="store_true",
@@ -206,6 +220,11 @@ def load_args():
 def run():
     options, args = load_args()
     img_db = set_up_db(options, args)
+
+    if options.verbose:
+        logger.setLevel(logging.DEBUG)
+    else:
+        logger.setLevel(logging.INFO)
 
     if options.configurator:
         root = tk.Tk()
@@ -229,7 +248,7 @@ def run():
             if not options.dryrun:
                 sys.stdout.write("{:.2%} - {} -> {}   \r".format(cpt/max, img, _output_dir))
             else:
-                print("\rCopy {} -> {}      ".format(img, _output_dir))
+                logger.info("\rCopy {} -> {}      ".format(img, _output_dir))
             if not options.dryrun:
                 os.makedirs(_output_dir, exist_ok=True)
             if not options.dryrun:
@@ -237,7 +256,7 @@ def run():
             cpt += 1
 
     if not options.dryrun:
-        sys.stdout.write("{:.2%}   \n".format(1.))
+        sys.stdout.write(" "*80 + "\n")
 
 if __name__ == "__main__":
     run()

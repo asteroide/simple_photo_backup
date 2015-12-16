@@ -7,7 +7,8 @@ import distutils.log
 import os
 import stat
 
-import simple_photo_backup
+from simple_photo_backup import __version__
+
 
 class UniqueFile(distutils.cmd.Command):
     """A custom command to create a unique python file."""
@@ -51,7 +52,7 @@ class UniqueFile(distutils.cmd.Command):
 setup(
  
     name='simple_photo_backup',
-    version=simple_photo_backup.__version__,
+    version=__version__,
  
     packages=find_packages(),
  
@@ -64,7 +65,8 @@ setup(
     long_description=open('README.rst').read(),
  
     install_requires=[
-        "exifread",
+        "Image",
+        "exifread"
     ],
  
     include_package_data=True,
